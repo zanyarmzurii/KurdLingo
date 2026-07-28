@@ -401,5 +401,11 @@ class Database:
                         updates.append(f"{key} = {key} + 1")
                 
                 if updates:
-                    await db.execute(f"""
-                        UPDATE daily_stats 
+                    query = f"UPDATE daily_stats SET {', '.join(updates)} WHERE date = ?"
+                    params.append(today)
+                    await db.execute(query, tuple(params))
+                    await db.commit()
+        except Exception as e:
+            logger.error(f"Error updating daily stats: {e}")
+
+db = Database()
