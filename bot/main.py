@@ -441,7 +441,10 @@ def main():
     asyncio.run(init_database())
     
     logger.info(f"{BOT_NAME} is running...")
-    bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    try:
+        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    except Exception as e:
+        logger.error(f"Polling error: {e}")
 
 if __name__ == "__main__":
     main()

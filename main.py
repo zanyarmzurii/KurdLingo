@@ -57,7 +57,7 @@ def start_cmd(message):
     for code, name in config.LANGUAGES.items():
         markup.add(types.InlineKeyboardButton(name, callback_data=f"setlang_{code}"))
         
-    bot.send_message(message.chat.id, welcome_msg, parse_mode="Markdown", reply_markup=markup)
+    bot.send_message(message.chat.id, welcome_msg, reply_markup=markup)
 
 # 🎯 2. Choose Level
 @bot.callback_query_handler(func=lambda call: call.data.startswith('setlang_'))
@@ -79,7 +79,7 @@ def choose_level(call):
         types.InlineKeyboardButton("⚡ باشترکرنێ (پەیڤ و ڕێزمانا پێشکەفتی)", callback_data=f"lvl_adv_{lang_code}"),
         types.InlineKeyboardButton("🏆 تەمامکرنا تەواو (فێربوونا کامل دگەل بڕوانامێ)", callback_data=f"lvl_full_{lang_code}")
     )
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=level_msg, parse_mode="Markdown", reply_markup=markup)
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=level_msg, reply_markup=markup)
 
 # 📝 3. Quiz Engine
 @bot.callback_query_handler(func=lambda call: call.data.startswith('lvl_'))
@@ -100,7 +100,7 @@ def start_quiz(call):
         types.InlineKeyboardButton("C) ب خێر هاتی", callback_data="ans_wrong"),
         types.InlineKeyboardButton("D) دەستخۆش", callback_data="ans_wrong")
     )
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=quiz_msg, parse_mode="Markdown", reply_markup=markup)
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=quiz_msg, reply_markup=markup)
 
 # ✅ 4. Check Answer & Certificate Alert to Admin
 @bot.callback_query_handler(func=lambda call: call.data.startswith('ans_'))
@@ -126,7 +126,7 @@ def handle_answer(call):
 📜 **داخوازیا بڕوانامەیێ:**
 داخوازیا تە شاندرا بۆ ئادمنی. ئادمن دێ ب جوانترین دیزاین بڕوانامەیا تە ب ناڤێ تە ئامادەکەت و بۆ تە ڕوانێت!
 """
-        bot.send_message(user_id, cert_msg_user, parse_mode="Markdown")
+        bot.send_message(user_id, cert_msg_user)
 
         # 📩 ئاگاداری بۆ تە (ئادمنی)
         admin_alert = f"""
@@ -140,7 +140,7 @@ def handle_answer(call):
 لطفاً بڕوانامەیێ ب ناڤێ **{first_name}** ئامادە بکە و بڕوانە ب فەرمانا:
 `/activate {user_id} Premium`
 """
-        bot.send_message(config.ADMIN_ID, admin_alert, parse_mode="Markdown")
+        bot.send_message(config.ADMIN_ID, admin_alert)
 
 # ⚙️ 5. Admin Activation
 @bot.message_handler(commands=['activate'])

@@ -99,8 +99,7 @@ def register_payment_handlers(bot):
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
             text=text,
-            reply_markup=keyboard,
-            parse_mode=None
+            reply_markup=keyboard
         )
         bot.set_state(call.from_user.id, BotStates.payment_receipt, call.message.chat.id)
 
