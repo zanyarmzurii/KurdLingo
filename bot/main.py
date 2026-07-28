@@ -19,7 +19,7 @@ from bot.config import (
     BOT_TOKEN, BOT_NAME, ADMIN_ID, DEVELOPER_ID, ADMIN_USERNAME,
     logger, PAYMENT_METHODS, LANGUAGES, LEVELS, PLANS
 )
-from bot.database import db, init_database
+from bot.database import db, init_database  # noqa: init_database defined at module level
 
 state_storage = StateMemoryStorage()
 
@@ -402,8 +402,8 @@ def handle_verify_payment(call: types.CallbackQuery):
     
     if success:
         bot.answer_callback_query(call.id, "✅ پارەدان پەسەندکرا!")
-        bot.edit_message_caption(
-            caption=f"{call.message.caption}\n\n✅ پەسەندکرا لەلایەن {call.from_user.first_name}",
+        bot.edit_message_text(
+            text=f"{call.message.text}\n\n✅ پەسەندکرا لەلایەن {call.from_user.first_name}",
             chat_id=call.message.chat.id,
             message_id=call.message.message_id
         )

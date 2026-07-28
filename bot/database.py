@@ -408,4 +408,117 @@ class Database:
         except Exception as e:
             logger.error(f"Error updating daily stats: {e}")
 
+    async def get_statistics(self) -> Dict[str, Any]:
+        """Get overall bot statistics for admin panel"""
+        try:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            today = datetime.now().strftime("%Y-%m-%d")
+            async with self.get_connection() as conn:
+                cursor = await conn.execute("SELECT COUNT(*) FROM users")
+                total_users = (await cursor.fetchone())[0]
+
+                cursor = await conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE last_active_date = ?", (today,)
+                )
+                active_users_today = (await cursor.fetchone())[0]
+
+                cursor = await conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE plan_type = 'premium' AND plan_expiry > ?",
+                    (now_str,)
+                )
+                total_premium = (await cursor.fetchone())[0]
+
+                cursor = await conn.execute(
+                    "SELECT COUNT(*) FROM users WHERE plan_type = 'family' AND plan_expiry > ?",
+                    (now_str,)
+                )
+                total_family = (await cursor.fetchone())[0]
+
+                cursor = await conn.execute(
+                    "SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM payments WHERE status = 'verified'"
+                )
+                row = await cursor.fetchone()
+                total_payments = row[0]
+                total_revenue = row[1]
+
+                cursor = await conn.execute(
+                    "SELECT COUNT(*) FROM payments WHERE status = 'pending'"
+                )
+                pending_payments = (await cursor.fetchone())[0]
+
+            return {
+                "total_users": total_users,
+                "active_users_today": active_users_today,
+                "total_premium": total_premium,
+                "total_family": total_family,
+                "total_payments": total_payments,
+                "total_revenue": total_revenue,
+                "pending_payments": pending_payments
+            }
+        except Exception as e:
+            logger.error(f"Error getting statistics: {e}")
+            return {
+                "total_users": 0, "active_users_today": 0,
+                "total_premium": 0, "total_family": 0,
+                "total_payments": 0, "total_revenue": 0,
+                "pending_payments": 0
+            }
+
+    async def get_pending_payments(self) -> List[Dict[str, Any]]:
+        """Get all pending payments joined with user info"""
+        try:
+            async with self.get_connection() as conn:
+                cursor = await conn.execute("""
+                    SELECT p.*, u.first_name, u.username
+                    FROM payments p
+                    LEFT JOIN users u ON p.user_id = u.user_id
+                    WHERE p.status = 'pending'
+                    ORDER BY p.payment_date DESC
+                """)
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error getting pending payments: {e}")
+            return []
+
+    async def verify_payment(self, payment_id: int, admin_id: int) -> bool:
+        """Mark a pending payment as verified and activate the user's plan"""
+        try:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            user_id = None
+            plan_type = None
+            duration = None
+
+            async with self.get_connection() as conn:
+                cursor = await conn.execute(
+                    "SELECT user_id, plan_type, duration FROM payments WHERE id = ? AND status = 'pending'",
+                    (payment_id,)
+                )
+                row = await cursor.fetchone()
+                if not row:
+                    return False
+                user_id, plan_type, duration = row[0], row[1], row[2]
+
+                await conn.execute("""
+                    UPDATE payments
+                    SET status = 'verified', admin_verified = TRUE,
+                        verified_by = ?, verified_date = ?
+                    WHERE id = ?
+                """, (admin_id, now_str, payment_id))
+                await conn.commit()
+
+            dur_map = {"1_month": 30, "3_months": 90, "6_months": 180, "1_year": 365}
+            days = dur_map.get(duration, 30)
+            await self.update_user_plan(user_id, plan_type, days)
+            return True
+        except Exception as e:
+            logger.error(f"Error verifying payment {payment_id}: {e}")
+            return False
+
+
 db = Database()
+
+
+async def init_database() -> None:
+    """Module-level helper — initialises the database tables on startup."""
+    await db.init_db()

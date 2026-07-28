@@ -92,7 +92,7 @@ def register_admin_handlers(bot):
                 asyncio.run(db.update_user_plan(user_id, plan_type, days))
                 bot.send_message(user_id, f"🎉 پلانی {plan_type} چالاک کرا!")
             conn.close()
-            bot.edit_message_caption(caption=call.message.caption + "\n\n✅ پەسەندکرا", chat_id=call.message.chat.id, message_id=call.message.message_id)
+            bot.edit_message_text(text=call.message.text + "\n\n✅ پەسەندکرا", chat_id=call.message.chat.id, message_id=call.message.message_id)
         else:
             bot.answer_callback_query(call.id, "❌ هەڵە")
         bot.answer_callback_query(call.id)
@@ -107,7 +107,7 @@ def register_admin_handlers(bot):
         conn.execute("UPDATE payments SET status='rejected' WHERE id=?", (payment_id,))
         conn.commit()
         conn.close()
-        bot.edit_message_caption(caption=call.message.caption + "\n\n❌ ڕەتکرایەوە", chat_id=call.message.chat.id, message_id=call.message.message_id)
+        bot.edit_message_text(text=call.message.text + "\n\n❌ ڕەتکرایەوە", chat_id=call.message.chat.id, message_id=call.message.message_id)
         bot.answer_callback_query(call.id, "ڕەتکرایەوە")
 
     @bot.message_handler(commands=['broadcast'])
