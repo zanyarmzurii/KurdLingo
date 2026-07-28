@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kurdingo_bot
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID}
+      - DATABASE_URL=sqlite:///data/kurdingo.db
+      - REDIS_URL=redis://redis:6379/0
+      - TZ=Asia/Baghdad
+    volumes:
+      - bot_data:/app/data
+      - bot_logs:/app/logs
+      - ./bot:/app/bot
+      - ./utils:/app/utils
+    depends_on:
+      redis:
+        condition: service_started
+    networks:
+      - kurdingo_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: kurdingo_redis
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - kurdingo_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kurdingo_scheduler
+    restart: always
+    command: python -m bot.services.scheduler
+    env_file:
+      - .env
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DATABASE_URL=sqlite:///data/kurdingo.db
+      - REDIS_URL=redis://redis:6379/0
+      - TZ=Asia/Baghdad
+    depends_on:
+      - redis
+    networks:
+      - kurdingo_network
+
+volumes:
+  bot_data:
+    driver: local
+  bot_logs:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  kurdingo_network:
+    driver: bridge
